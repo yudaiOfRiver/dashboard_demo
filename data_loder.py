@@ -2,48 +2,67 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
+import pandas as pd
+import numpy as np
+import streamlit as st
+
+# ... (load_inventory_data, load_movement_data は変更なし) ...
+
 @st.cache_data
 def load_sales_data():
     """
     売上分析用のデータを読み込む（生成する）関数
+    【エリアマネージャー用：目標・原価データ付き】
     """
-    # --- 1. 売上データ（固定値） ---
+    # 期間：2024年1月〜12月
+    dates = pd.date_range(start="2024-01-01", end="2024-12-31", freq="M") # 月末
     
-    # 日付: 2024年1月〜9月の月末
-    dates = pd.date_range(start="2024-01-01", periods=9, freq="M")
-    
-    # 売上（指定された固定値）
-    sales = np.array([12000, 25000, 18000, 22000, 15000, 30000, 27000, 35000, 40000])
-    
-    # カテゴリ（定数で固定）
-    categories = [
-        "Electronics", "Furniture", "Office", 
-        "Electronics", "Office", "Furniture", 
-        "Electronics", "Electronics", "Furniture"
-    ]
-    
-    # チャネル（定数で固定）
-    channels = [
-        "Online Store", "Retail Shop", "Distributor", 
-        "Online Store", "Retail Shop", "Online Store", 
-        "Distributor", "Online Store", "Retail Shop"
-    ]
+    # マスタデータ
+    channels = ["渋谷旗艦店", "新宿店", "銀座店", "ECサイト", "梅田店", "博多店"]
+    categories = ["トップス", "ボトムス", "アウター", "アクセサリー"]
     
     sales_data = []
-    cumulative = 0
     
-    for i, date in enumerate(dates):
-        current_sale = sales[i]
-        cumulative += current_sale
-        
-        sales_data.append({
-            "Date": date,
-            "Sales": current_sale,
-            "CumulativeSales": cumulative,
-            "Category": categories[i],
-            "Channel": channels[i]
-        })
-        
+    # 乱数シード固定
+    rng = np.random.default_rng(42)
+    
+    for date in dates:
+        for channel in channels:
+            for category in categories:
+                # 1. 売上 (Sales): 季節変動と店舗規模を加味
+                base_sales = rng.integers(300000, 1000000)
+                
+                # 冬（1,2,12月）はアウターが売れて高くなる
+                month = date.month
+                if month in [1, 2, 12] and category == "アウター":
+                    base_sales *= 1.5
+                
+                # 旗艦店とECは売上が大きい
+                if channel in ["渋谷旗艦店", "ECサイト"]:
+                    base_sales *= 1.2
+                
+                sales = int(base_sales)
+                
+                # 2. 目標 (Target): 売上の前後（達成/未達を演出）
+                # 95%〜110%の間でランダムに目標を設定
+                target_ratio = rng.uniform(0.9, 1.15)
+                target = int(sales * target_ratio)
+                
+                # 3. 原価 (Cost): 粗利率 約60% (原価率40%) と仮定
+                cost_ratio = rng.uniform(0.35, 0.45)
+                cost = int(sales * cost_ratio)
+                
+                sales_data.append({
+                    "Date": date,
+                    "Month": date.strftime("%Y-%m"), # グラフ表示用
+                    "Channel": channel,
+                    "Category": category,
+                    "Sales": sales,
+                    "Target": target,
+                    "Cost": cost,
+                    "Profit": sales - cost
+                })
+                
     df_sales = pd.DataFrame(sales_data)
     
     return df_sales
