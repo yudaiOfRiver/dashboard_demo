@@ -11,6 +11,7 @@ def show_sales_view(df_sales):
     3. 商品別積み上げ棒グラフ
     """
     st.title("📊 売上分析ダッシュボード")
+    st.caption("1. 主要KPI（最新月）")
 
     # データ処理：日付型確認
     df = df_sales.copy()
